@@ -27,98 +27,105 @@
 	<button type="button" class="btn btn-primary res-button rounded-circle" @onclick="@ShowResForm"><span class="oi oi-comment-square"></span></button>
 
 @code {
-	[Parameter]
-	private int ThreadId { get; set; } = 0;
+[Parameter]
+private int ThreadId { get; set; } = 0;
 
-	private ThreadData newThread = new ThreadData();
-	private ThreadResponseData newResponse = new ThreadResponseData();
+private ThreadData newThread = new ThreadData();
+private ThreadResponseData newResponse = new ThreadResponseData();
 
-	private List<ThreadData> threads = new List<ThreadData>();
+private List<ThreadData> threads = new List<ThreadData>();
 
-	private ModalForm threadPostForm;
-	private ModalForm responsePostForm;
+private ModalForm threadPostForm;
+private ModalForm responsePostForm;
 
 
-	protected override void OnInit()
+protected override void OnInit()
+{
+
+	LoadData();
+}
+
+private void LoadData()
+{
+	threads = new List<ThreadData>();
+
+	if (!threadContext.Thread.Any()) return;
+
+	ThreadId = threadContext.Thread.OrderByDescending(t => t.LastUpdate).First().Id;
+	threads.AddRange(threadContext.Thread.OrderByDescending(t => t.LastUpdate).Take(10));
+	foreach (var thread in threads)
 	{
-		ThreadId = threadContext.Thread.OrderByDescending(t => t.LastUpdate).First().Id;
-		LoadData();
+		thread.Response = new List<ThreadResponseData>();
+		if (responseContext.ThreadResponse.Any(r => r.ParentThreadId == thread.Id))
+		{
+			thread.Response.AddRange(
+				responseContext.ThreadResponse
+				.Where(r => r.ParentThreadId == thread.Id)
+				);
+		}
 	}
 
-	private void LoadData()
+	StateHasChanged();
+}
+
+private async Task PostThread_OnClick(UIMouseEventArgs e)
+{
+	if (IsFormNullOrEmpty()) return;
+
+	newThread.LastUpdate = DateTime.Now;
+	newThread.CreateDateTime = newThread.LastUpdate;
+
+	threadContext.Add(newThread);
+	try
 	{
-		threads = new List<ThreadData>();
-		if (!threadContext.Thread.Any()) return;
-
-		threads.AddRange(threadContext.Thread.OrderByDescending(t => t.LastUpdate).Take(10));
-		foreach (var thread in threads)
-		{
-			thread.Response = new List<ThreadResponseData>();
-			if (responseContext.ThreadResponse.Any(r => r.ParentThreadId == thread.Id))
-			{
-				thread.Response.AddRange(
-					responseContext.ThreadResponse
-					.Where(r => r.ParentThreadId == thread.Id)
-					);
-			}
-		}
-
+		await threadContext.SaveChangesAsync();
+	}
+	catch(Exception ex)
+	{
+		System.Diagnostics.Debug.WriteLine(ex.Message);
+	}
+	finally
+	{
+		ResetThreadForm();
+		LoadData();
+		threadPostForm.Close();
 		StateHasChanged();
 	}
+}
 
-	private async Task PostThread_OnClick(UIMouseEventArgs e)
+private async Task PostResponse_OnClick(UIMouseEventArgs e)
+{
+	if (IsResFormNullOrEmpty()) return;
+
+	newResponse.LastUpdate = DateTime.Now;
+	newResponse.CreateDateTime = newResponse.LastUpdate;
+	newResponse.ParentThreadId = ThreadId;
+
+	threadContext.Thread.First(t => t.Id == ThreadId).LastUpdate = newResponse.CreateDateTime;
+
+	newResponse.ResponseId = threadContext.Thread.First(t => t.Id == ThreadId).Response.Count + 1;
+	responseContext.Add(newResponse);
+
+
+	try
 	{
-		if (IsFormNullOrEmpty()) return;
+		var retThread = threadContext.SaveChangesAsync();
+		var retRes = responseContext.SaveChangesAsync();
+		var resultTasks = await Task.WhenAll(retThread, retRes);
 
-		newThread.LastUpdate = DateTime.Now;
-		newThread.CreateDateTime = newThread.LastUpdate;
-
-		threadContext.Add(newThread);
-		var ret = 0;
-		ret = await threadContext.SaveChangesAsync();
-
-		if (ret > 0)
-		{
-			ResetThreadForm();
-			LoadData();
-			threadPostForm.Close();
-			StateHasChanged();
-		}
 	}
-
-	private async Task PostResponse_OnClick(UIMouseEventArgs e)
+	catch (Exception ex)
 	{
-		if (IsResFormNullOrEmpty()) return;
-
-		newResponse.LastUpdate = DateTime.Now;
-		newResponse.CreateDateTime = newResponse.LastUpdate;
-		newResponse.ParentThreadId = ThreadId;
-
-		threadContext.Thread.First(t => t.Id == ThreadId).LastUpdate = newResponse.CreateDateTime;
-
-		newResponse.ResponseId = threadContext.Thread.First(t => t.Id == ThreadId).Response.Count + 1;
-		responseContext.Add(newResponse);
-
-
-		try
-		{
-			var retThread = threadContext.SaveChangesAsync();
-			var retRes = responseContext.SaveChangesAsync();
-			var resultTasks = await Task.WhenAll(retThread, retRes);
-
-		}
-		catch (Exception ex)
-		{ 
-			System.Diagnostics.Debug.WriteLine(ex.Message);
-		}
-		finally
-		{
-			ResetResponseForm();
-			LoadData();
-			responsePostForm.Close();
-			StateHasChanged();
-		}
+		System.Diagnostics.Debug.WriteLine(ex.Message);
 	}
+	finally
+	{
+		ResetResponseForm();
+		LoadData();
+		responsePostForm.Close();
+		StateHasChanged();
+	}
+}
 
 private void ResetThreadForm()
 {
