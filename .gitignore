@@ -340,4 +340,5 @@ ASALocalRun/
 healthchecksdb
 
 appsettings.json
+appsettings.Development.json
 BlazorBBS/Properties/launchSettings.json
