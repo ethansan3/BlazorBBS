@@ -1,0 +1,37 @@
+@if(isDisplay)
+{
+	<div class="modal fade show" tabindex="-1" aria-hidden="true" style="display:block; padding-right: 17px;" aria-modal="true">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Modal title</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="@Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					@ChildContent
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+@code{
+
+private bool isDisplay = false;
+
+/// <summary>
+/// モーダルウィンドウ内に表示するコンテンツ
+/// </summary>
+[Parameter]
+public RenderFragment ChildContent { get; set; }
+
+public void Show(){
+	isDisplay = true;
+}
+public void Close()
+{
+	isDisplay = false;
+}
+}

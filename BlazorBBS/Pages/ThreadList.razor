@@ -1,0 +1,22 @@
+@using BlazorBBS.Data
+@foreach (var thread in ThreadDataList)
+{
+	<a href="bbs/@thread.Id" class="list-group-item list-group-item-action flex-column align-items-start">
+		<div class="d-flex w-100 justify-content-between">
+			<h5 class="mb-1 w-75 text-truncate">@(thread.Title)</h5>
+
+			<small class="text-muted">@(thread.LastUpdate)</small>
+
+		</div>
+		<p class="mb-1 text-truncate">@thread.Text</p>
+		<small class="text-truncate"><a href="mailto:@(thread.Email)" class="text-muted">@thread.Name</a></small>
+		<span class="badge badge-info" style="position:absolute; right:10px; bottom:5px;">@thread.Response.Count</span>
+	</a>
+
+}
+
+
+@code {
+[Parameter]
+private List<ThreadData> ThreadDataList { get; set; } = new List<ThreadData>();
+}

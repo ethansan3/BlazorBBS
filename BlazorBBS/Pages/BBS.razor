@@ -1,0 +1,152 @@
+@page "/bbs"
+@page "/bbs/{ThreadId:int}"
+@using BlazorBBS.Data
+@inject ThreadContext threadContext
+@inject ThreadResponseContext responseContext
+
+	<div class="bbs-top pl-4"><button type="button" class="btn btn-primary" @onclick="@ShowThreadForm">Post New Thread</button></div>
+	<div class="bbs pt-4">
+		<div class="bbs-post-form">
+			<ThreadList ThreadDataList="threads">	
+			</ThreadList>
+		</div>
+		<div class="bbs-post-detail">
+			@if (threads.Any(p => p.Id == ThreadId))
+			{
+				<ThreadDetail ThreadData="threads.First(t=>t.Id == ThreadId)">
+				</ThreadDetail>
+			}
+		</div>
+	</div>
+	<ModalForm @ref="threadPostForm">
+		<ThreadCreateForm NewThread="newThread" OnClick="@PostThread_OnClick" />
+	</ModalForm>
+	<ModalForm @ref="responsePostForm">
+		<ResponseCreateForm NewResponse="newResponse" OnClick="@PostResponse_OnClick" />
+	</ModalForm>
+	<button type="button" class="btn btn-primary res-button rounded-circle" @onclick="@ShowResForm"><span class="oi oi-comment-square"></span></button>
+
+@code {
+	[Parameter]
+	private int ThreadId { get; set; } = 0;
+
+	private ThreadData newThread = new ThreadData();
+	private ThreadResponseData newResponse = new ThreadResponseData();
+
+	private List<ThreadData> threads = new List<ThreadData>();
+
+	private ModalForm threadPostForm;
+	private ModalForm responsePostForm;
+
+
+	protected override void OnInit()
+	{
+		ThreadId = threadContext.Thread.OrderByDescending(t => t.LastUpdate).First().Id;
+		LoadData();
+	}
+
+	private void LoadData()
+	{
+		threads = new List<ThreadData>();
+		if (!threadContext.Thread.Any()) return;
+
+		threads.AddRange(threadContext.Thread.OrderByDescending(t => t.LastUpdate).Take(10));
+		foreach (var thread in threads)
+		{
+			thread.Response = new List<ThreadResponseData>();
+			if (responseContext.ThreadResponse.Any(r => r.ParentThreadId == thread.Id))
+			{
+				thread.Response.AddRange(
+					responseContext.ThreadResponse
+					.Where(r => r.ParentThreadId == thread.Id)
+					);
+			}
+		}
+
+		StateHasChanged();
+	}
+
+	private async Task PostThread_OnClick(UIMouseEventArgs e)
+	{
+		if (IsFormNullOrEmpty()) return;
+
+		newThread.LastUpdate = DateTime.Now;
+		newThread.CreateDateTime = newThread.LastUpdate;
+
+		threadContext.Add(newThread);
+		var ret = 0;
+		ret = await threadContext.SaveChangesAsync();
+
+		if (ret > 0)
+		{
+			ResetThreadForm();
+			LoadData();
+			threadPostForm.Close();
+			StateHasChanged();
+		}
+	}
+
+	private async Task PostResponse_OnClick(UIMouseEventArgs e)
+	{
+		if (IsResFormNullOrEmpty()) return;
+
+		newResponse.LastUpdate = DateTime.Now;
+		newResponse.CreateDateTime = newResponse.LastUpdate;
+		newResponse.ParentThreadId = ThreadId;
+
+		threadContext.Thread.First(t => t.Id == ThreadId).LastUpdate = newResponse.CreateDateTime;
+
+		newResponse.ResponseId = threadContext.Thread.First(t => t.Id == ThreadId).Response.Count + 1;
+		responseContext.Add(newResponse);
+
+
+		try
+		{
+			var retThread = threadContext.SaveChangesAsync();
+			var retRes = responseContext.SaveChangesAsync();
+			var resultTasks = await Task.WhenAll(retThread, retRes);
+
+		}
+		catch (Exception ex)
+		{ 
+			System.Diagnostics.Debug.WriteLine(ex.Message);
+		}
+		finally
+		{
+			ResetResponseForm();
+			LoadData();
+			responsePostForm.Close();
+			StateHasChanged();
+		}
+	}
+
+private void ResetThreadForm()
+{
+	newThread = new ThreadData();
+}
+
+private void ResetResponseForm()
+{
+	newResponse = new ThreadResponseData();
+}
+
+private bool IsFormNullOrEmpty()
+{
+	return string.IsNullOrEmpty(newThread.Name) && string.IsNullOrEmpty(newThread.Text);
+}
+
+private bool IsResFormNullOrEmpty()
+{
+	return string.IsNullOrEmpty(newResponse.Name) && string.IsNullOrEmpty(newResponse.Text);
+}
+
+private void ShowThreadForm()
+{
+	threadPostForm.Show();
+}
+
+private void ShowResForm()
+{
+	responsePostForm.Show();
+}
+}

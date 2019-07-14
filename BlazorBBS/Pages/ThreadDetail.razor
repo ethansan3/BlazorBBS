@@ -1,0 +1,21 @@
+@using BlazorBBS.Data
+
+	<a class="list-group-item list-group-item-action flex-column align-items-start list-group-item-light">
+		<h3 class="p-2">@ThreadData.Title</h3>
+		<div class="text-body">@ThreadData.Text</div>
+		<small><a href="mailto:@(ThreadData.Email)" class="text-dark">Author:@ThreadData.Name</a></small><small class="float-right"><a class="text-dark">Date:@ThreadData.LastUpdate</a></small>
+	</a>
+
+@foreach (var res in ThreadData.Response)
+{
+	<a class="list-group-item list-group-item-action flex-column align-items-start">
+		<h5>Re:@res.ResponseId</h5>
+		<div class="text-dark">@res.Text</div>
+		<small><a href="mailto:@(res.Email)" class="text-secondary">Author:@res.Name</a></small><small class="float-right"><a class="text-secondary">Date:@res.LastUpdate</a></small>
+	</a>
+}
+
+@code {
+	[Parameter]
+	private ThreadData ThreadData { get; set; } = new ThreadData();
+}

@@ -1,0 +1,33 @@
+@using BlazorBBS.Data
+
+
+<div class="input-group mb-3">
+	<div class="input-group-prepend">
+		<span class="input-group-text" id="basic-addon1">name:</span>
+	</div>
+	<input type="text" class="form-control" placeholder="Username" aria-label="Username" aria-describedby="basic-addon1" @bind="NewResponse.Name" />
+</div>
+
+<div class="input-group mb-3">
+	<div class="input-group-prepend">
+		<span class="input-group-text" id="basic-addon1">mail:</span>
+	</div>
+	<input type="text" class="form-control" placeholder="E-mail" aria-label="E-mail" aria-describedby="basic-addon1" @bind="NewResponse.Email" />
+</div>
+
+<div class="input-group bbs-text">
+	<div class="input-group-prepend">
+		<span class="input-group-text">Text:</span>
+	</div>
+	<textarea class="form-control bbs-textarea" placeholder="Write something..." aria-label="With textarea" @bind="NewResponse.Text"></textarea>
+</div>
+<button type="button" class="btn btn-primary mt-2" @onclick="@OnClick" >Post</button>
+
+
+@code {
+	[Parameter]
+	public ThreadResponseData NewResponse { get; set; }
+
+	[Parameter]
+	private EventCallback<UIMouseEventArgs> OnClick { get; set; }
+}
